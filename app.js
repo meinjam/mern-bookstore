@@ -1,26 +1,33 @@
-require('dotenv').config();
+const config = require('./utils/config');
+const logger = require('./utils/logger');
 const express = require('express');
+const cors = require('cors');
 const mongoose = require('mongoose');
+
+const bookRoutes = require('./routes/books');
 
 //express app
 const app = express();
+
+app.use(cors());
+app.use(express.static('build'));
+app.use(express.json());
 
 // routes
 app.get('/', (req, res) => {
   res.json({ msg: 'welcome to the net ninja' });
 });
 
+app.use('/api/books', bookRoutes);
+
 //connected to db
 mongoose
-  .connect(process.env.MONGODB_URI)
+  .connect(config.MONGODB_URI)
   .then(() => {
-    console.log('connected to MongoDB');
+    logger.info('connected to MongoDB');
   })
   .catch((error) => {
-    console.error(error.message);
+    logger.error(error.message);
   });
 
-//listen for request
-app.listen(process.env.PORT, () => {
-  console.log(`Server running on port ${process.env.PORT}`);
-});
+module.exports = app;
