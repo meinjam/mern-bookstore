@@ -3,14 +3,28 @@ const Joi = require('joi');
 
 const bookSchema = new mongoose.Schema(
   {
-    title: {
+    name: {
       type: String,
       minLength: 3,
       required: true,
     },
-    description: {
+    author: {
       type: String,
-      minLength: 5,
+      minLength: 2,
+      required: true,
+    },
+    thumbnail: {
+      type: String,
+    },
+    thumbnailId: {
+      type: String,
+    },
+    price: {
+      type: Number,
+      required: true,
+    },
+    rating: {
+      type: Number,
       required: true,
     },
     isFeatured: {
@@ -26,13 +40,16 @@ bookSchema.set('toJSON', {
     returnedObject.id = returnedObject._id.toString();
     delete returnedObject._id;
     delete returnedObject.__v;
+    delete returnedObject.thumbnailId;
   },
 });
 
 const validateBook = (book) => {
   const schema = Joi.object({
-    title: Joi.string().min(3).max(100).required().label('book name'),
-    description: Joi.string().min(5).max(255).required().label('book description'),
+    name: Joi.string().min(3).max(100).required().label('book name'),
+    author: Joi.string().min(2).max(100).required().label('book author'),
+    price: Joi.number().max(100000).required().label('book price'),
+    rating: Joi.number().min(1).max(5).required().label('book rating'),
     isFeatured: Joi.boolean(),
   }).options({ abortEarly: false });
 

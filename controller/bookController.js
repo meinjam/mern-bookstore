@@ -1,6 +1,8 @@
 const { Book, validate } = require('../models/bookModel');
 const { successResponse, errorResponse, formatJoiError } = require('../utils/response.message');
 const mongoose = require('mongoose');
+const cloudinary = require('cloudinary').v2;
+const formidable = require('formidable');
 
 // get all books
 const getAllBooks = async (req, res) => {
@@ -10,20 +12,40 @@ const getAllBooks = async (req, res) => {
 
 // carete new book
 const createBook = async (req, res) => {
-  const { error } = validate(req.body);
-  if (error) {
-    const joiError = formatJoiError(error.details);
-    return res.status(400).send(errorResponse(joiError, 400, 'Validation error.'));
-  }
+  console.log(req.body);
+  // const { error } = validate(req.body);
+  // if (error) {
+  //   const joiError = formatJoiError(error.details);
+  //   return res.status(400).send(errorResponse(joiError, 400, 'Validation error.'));
+  // }
 
-  const { title, description, isFeatured } = req.body;
+  const { name, author, price, rating, isFeatured } = req.body;
 
-  try {
-    const book = await Book.create({ title, description, isFeatured });
-    res.status(200).json(successResponse(book));
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
+  const form = formidable({ multiples: true });
+
+  form.parse(req, async (err, fields, files) => {
+    const bookImage = files.image;
+
+    const uploadCloudinary = await cloudinary.uploader.upload(bookImage.filepath, {
+      use_filename: true,
+      folder: 'Book',
+    });
+
+    try {
+      const book = await Book.create({
+        name: fields.name,
+        author: fields.author,
+        price: fields.price,
+        rating: fields.rating,
+        thumbnail: uploadCloudinary.secure_url,
+        thumbnailId: uploadCloudinary.public_id,
+        isFeatured,
+      });
+      res.status(200).json(successResponse(book));
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
 };
 
 // get a single book
@@ -69,6 +91,8 @@ const deleteSingleBook = async (req, res) => {
   }
 
   const book = await Book.findOneAndDelete({ _id: id });
+
+  await cloudinary.uploader.destroy(book.thumbnailId);
 
   if (!book) {
     return res.status(400).json(errorResponse({}, 400, 'Sorry, no book found.'));
